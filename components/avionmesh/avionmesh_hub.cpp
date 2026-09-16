@@ -9,6 +9,7 @@
 #include "esphome/components/json/json_util.h"  // management commands still use JSON
 #include "esphome/components/web_server_base/web_server_base.h"
 
+#include <cinttypes>
 #include <cstring>
 #include <ctime>
 #include <set>
@@ -209,7 +210,7 @@ void AvionMeshHub::stop_scan_and_connect() {
 
 void AvionMeshHub::connect_to_best() {
     if (best_rssi_ == -999) {
-        ESP_LOGW(TAG, "No CSRMesh bridges found, retrying in %ums", RECONNECT_DELAY_MS);
+        ESP_LOGW(TAG, "No CSRMesh bridges found, retrying in %" PRIu32 "ms", RECONNECT_DELAY_MS);
         ble_state_ = BleState::Disconnected;
         reconnect_at_ms_ = esphome::millis() + RECONNECT_DELAY_MS;
         return;
@@ -377,7 +378,7 @@ void AvionMeshHub::on_disconnected() {
     ble_state_ = BleState::Disconnected;
     reconnect_at_ms_ = esphome::millis() + RECONNECT_DELAY_MS;
     update_mesh_initialized();
-    ESP_LOGI(TAG, "Will reconnect in %ums", RECONNECT_DELAY_MS);
+    ESP_LOGI(TAG, "Will reconnect in %" PRIu32 "ms", RECONNECT_DELAY_MS);
 }
 
 /* ---- Crypto initialization ---- */
@@ -425,7 +426,7 @@ void AvionMeshHub::update_mesh_initialized() {
     if (mesh_initialized_ != was_initialized) {
         char buf[128];
         snprintf(buf, sizeof(buf),
-                 "{\"ble_state\":%u,\"mesh_initialized\":%s,\"rx_count\":%u}",
+                 "{\"ble_state\":%u,\"mesh_initialized\":%s,\"rx_count\":%" PRIu32 "}",
                  static_cast<uint8_t>(ble_state_),
                  mesh_initialized_ ? "true" : "false",
                  rx_count_);
@@ -871,7 +872,7 @@ void AvionMeshHub::on_mesh_rx(uint16_t mcp_source, uint16_t crypto_source,
                                 size_t payload_len) {
     rx_count_++;
     uint16_t src = (mcp_source == 0x8000) ? crypto_source : mcp_source;
-    ESP_LOGD(TAG, "RX #%u: src=%u opcode=0x%02X len=%zu", rx_count_, src, opcode, payload_len);
+    ESP_LOGD(TAG, "RX #%" PRIu32 ": src=%u opcode=0x%02X len=%zu", rx_count_, src, opcode, payload_len);
 
     if ((discovering_mesh_ || examining_) && opcode == MODEL_OPCODE &&
         payload_len >= 10 && payload[0] == static_cast<uint8_t>(Verb::Ping)) {
@@ -968,7 +969,7 @@ void AvionMeshHub::on_mqtt_command(const std::string &payload) {
         if (action == "status") {
             char buf[192];
             snprintf(buf, sizeof(buf),
-                     "{\"action\":\"status\",\"ble_state\":%u,\"devices\":%zu,\"groups\":%zu,\"rx_count\":%u}",
+                     "{\"action\":\"status\",\"ble_state\":%u,\"devices\":%zu,\"groups\":%zu,\"rx_count\":%" PRIu32 "}",
                      static_cast<uint8_t>(ble_state_), db_.devices().size(), db_.groups().size(), rx_count_);
             send_response(buf);
             return true;
@@ -1042,7 +1043,7 @@ void AvionMeshHub::handle_scan_unassociated() {
 
         char buf[128];
         snprintf(buf, sizeof(buf),
-                 "{\"action\":\"scan_unassociated\",\"uuid_hash\":\"0x%08x\"}", uuid_hash);
+                 "{\"action\":\"scan_unassociated\",\"uuid_hash\":\"0x%08" PRIx32 "\"}", uuid_hash);
         send_response(buf);
     });
 
@@ -1053,7 +1054,7 @@ void AvionMeshHub::handle_scan_unassociated() {
         for (size_t i = 0; i < scan_uuid_hashes_.size(); i++) {
             if (i > 0) json += ",";
             char buf[16];
-            snprintf(buf, sizeof(buf), "\"0x%08x\"", scan_uuid_hashes_[i]);
+            snprintf(buf, sizeof(buf), "\"0x%08" PRIx32 "\"", scan_uuid_hashes_[i]);
             json += buf;
         }
         json += "]}";
@@ -1073,7 +1074,7 @@ void AvionMeshHub::handle_claim_device(uint32_t uuid_hash, uint16_t device_id,
         return;
     }
 
-    ESP_LOGI(TAG, "Claiming device: uuid_hash=0x%08x, device_id=%u, name=%s",
+    ESP_LOGI(TAG, "Claiming device: uuid_hash=0x%08" PRIx32 ", device_id=%u, name=%s",
              uuid_hash, device_id, name.c_str());
 
     auto err = csrmesh::protocol::init(proto_ctx_, uuid_hash, device_id,
