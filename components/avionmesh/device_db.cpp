@@ -4,7 +4,6 @@
 #include <nvs_flash.h>
 #include <nvs.h>
 #include <esp_system.h>
-#include <mbedtls/base64.h>
 #endif
 
 #include <algorithm>
@@ -254,6 +253,32 @@ void DeviceDB::set_passphrase(const std::string &passphrase) {
     save();
 }
 
+#ifdef USE_ESP32
+namespace {
+// Standard base64 (RFC 4648) with padding. Local so the component does not
+// depend on Mbed TLS utility APIs that differ between Mbed TLS generations.
+size_t base64_encode(const uint8_t *in, size_t len, char *out, size_t out_cap) {
+    static const char tbl[] =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    size_t need = 4 * ((len + 2) / 3);
+    if (out_cap < need + 1)
+        return 0;
+    size_t o = 0;
+    for (size_t i = 0; i < len; i += 3) {
+        uint32_t v = static_cast<uint32_t>(in[i]) << 16;
+        if (i + 1 < len) v |= static_cast<uint32_t>(in[i + 1]) << 8;
+        if (i + 2 < len) v |= in[i + 2];
+        out[o++] = tbl[(v >> 18) & 0x3F];
+        out[o++] = tbl[(v >> 12) & 0x3F];
+        out[o++] = (i + 1 < len) ? tbl[(v >> 6) & 0x3F] : '=';
+        out[o++] = (i + 2 < len) ? tbl[v & 0x3F] : '=';
+    }
+    out[o] = '\0';
+    return o;
+}
+}  // namespace
+#endif
+
 void DeviceDB::generate_passphrase() {
 #ifdef USE_ESP32
     /* Generate 16 random bytes and encode as base64 */
@@ -265,9 +290,7 @@ void DeviceDB::generate_passphrase() {
 
     /* Base64 encode: 16 bytes -> 24 chars + padding = 24 chars */
     char b64[32];
-    size_t out_len = 0;
-    mbedtls_base64_encode(reinterpret_cast<unsigned char *>(b64), sizeof(b64),
-                          &out_len, raw, sizeof(raw));
+    size_t out_len = base64_encode(raw, sizeof(raw), b64, sizeof(b64));
 
     passphrase_.assign(b64, out_len);
     save();

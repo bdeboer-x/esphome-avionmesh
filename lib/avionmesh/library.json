@@ -1,0 +1,17 @@
+{
+    "name": "avionmesh",
+    "version": "1.0.0",
+    "description": "Avi-on Bluetooth mesh light command library (C++20), vendored with recsrmesh and micro-ecc",
+    "keywords": "ble,mesh,avion,csrmesh,light",
+    "license": "LGPL-3.0-or-later",
+    "frameworks": "*",
+    "platforms": "espressif32",
+    "build": {
+        "flags": [
+            "-Iinclude",
+            "-Iexternal/recsrmesh/include"
+        ],
+        "srcDir": ".",
+        "srcFilter": "+<src/> +<external/recsrmesh/src/>"
+    }
+}

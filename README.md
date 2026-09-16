@@ -47,6 +47,15 @@ Using a board with a dedicated Ethernet PHY (connected via RMII or SPI) keeps Wi
 
 ## Installation
 
+### Build requirements
+
+- ESPHome 2026.4.0 or newer, using ESPHome's default native ESP-IDF toolchain.
+  Do not set `toolchain: platformio` (deprecated by ESPHome, removed in 2027.2.0).
+- ESP-IDF 5.5 (ESPHome's default) and ESP-IDF 6.0 are both supported.
+- The Avi-on mesh library is bundled in `lib/avionmesh` (see its README for
+  upstream versions and local changes); nothing is downloaded at build time.
+
+
 ### Minimal Configuration
 
 The example below uses an **Olimex ESP32-POE** pinout. You **must** adjust the
@@ -226,6 +235,8 @@ automation:
 This component works with Avi-on Bluetooth mesh lighting products and compatible devices.
 
 ## Dependencies
+
+Bundled in `lib/avionmesh`:
 
 - **Avi-on mesh protocol** — [avionmesh-cpp](https://github.com/oyvindkinsey/avionmesh-cpp) (C++, used at build time) / [avionmesh](https://github.com/oyvindkinsey/avionmesh) (Python, provides `mesh-tui`)
 - **CSRMesh BLE transport** — [recsrmesh-cpp](https://github.com/oyvindkinsey/recsrmesh-cpp) (C++) / [recsrmesh](https://github.com/oyvindkinsey/recsrmesh) (Python)

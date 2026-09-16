@@ -1,5 +1,7 @@
 """ESPHome external component for Avi-on BLE mesh lights (C++20).
 
+Builds with ESPHome's native ESP-IDF toolchain (ESP-IDF 5.5 and 6.x).
+
 Auto-scans for Avi-on bridges and connects to the one with the best RSSI.
 Reconnects automatically on disconnect.
 """
@@ -79,20 +81,18 @@ async def to_code(config):
     if CONF_PASSPHRASE in config:
         cg.add(var.set_passphrase(config[CONF_PASSPHRASE]))
 
-    # Download libraries via lib_deps (compiled via fix_cmake.py for ESP-IDF)
-    cg.add_platformio_option("lib_deps", [
-        "https://github.com/oyvindkinsey/avionmesh-cpp.git"
-    ])
+    # The Avi-on mesh library (with recsrmesh and micro-ecc) is vendored in
+    # lib/avionmesh at the repository root and added as a local library.
+    # ESPHome's native ESP-IDF toolchain turns it into an IDF component using
+    # its library.json; no PlatformIO or CMake patching is needed.
+    lib_dir = os.path.normpath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "lib", "avionmesh")
+    )
+    cg.add_library("avionmesh", None, f"file://{lib_dir}")
 
-    # C++20 for the libraries
-    cg.add_build_flag("-std=gnu++20")
     esp32_ble.register_gap_event_handler(parent, var)
     esp32_ble.register_gap_scan_event_handler(parent, var)
     esp32_ble.register_gattc_event_handler(parent, var)
-
-    # Patch src/CMakeLists.txt to add mbedtls dependency for ESP-IDF linking
-    script_path = os.path.join(os.path.dirname(__file__), "fix_cmake.py")
-    cg.add_platformio_option("extra_scripts", [f"pre:{script_path}"])
 
     # Gzip web assets → C headers
     comp_dir = os.path.dirname(__file__)
